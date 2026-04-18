@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Berry Bloom Match</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg1:#f7eef6;--bg2:#efe3f8;--card:#ffffffd9;--ink:#4a355d;--muted:#7c6a91;
+  --accent:#8d6cff;--accent2:#f26ec4;--gold:#f0b84e;--danger:#ff6f7d;
+}
+html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(180deg,var(--bg1),var(--bg2));background-image:url('images/bg1.png');background-size:cover;background-position:center top;background-repeat:no-repeat;color:var(--ink)}
+body{display:flex;justify-content:center}
+.app{width:min(100%,430px);min-height:100vh;position:relative;padding-top:45px;padding-bottom:70px;overflow-x:hidden}
+.top-peek-tab{
+  position:fixed;top:0;left:50%;transform:translateX(-50%);
+  z-index:130;width:min(96%,430px);height:45px;border-radius:0 0 16px 16px;
+  background:transparent !important;display:flex;align-items:center;justify-content:center;
+  color:transparent;font-size:0;box-shadow:none;padding:0;overflow:visible;border:0;
+}
+.tophud-img{
+  display:block;width:100%;height:100%;object-fit:fill;border-radius:0 0 16px 16px;background:transparent !important;
+}
+.tile-img{
+  width:84%;
+  height:84%;
+  object-fit:contain;
+  pointer-events:none;
+  user-select:none;
+}
+.inline-berry{width:18px;height:18px;object-fit:contain;vertical-align:-3px;display:inline-block;margin-right:4px;}.popup-html .inline-berry,#gameMessage .inline-berry,#shakeNotice .inline-berry{width:20px;height:20px;vertical-align:-4px;}
+.boom-chip-bg{
+  position:absolute;
+  inset:3px;
+  width:calc(100% - 6px);
+  height:calc(100% - 6px);
+  object-fit:contain;
+  pointer-events:none;
+  z-index:1;
+}
+.boom-chip-img{
+  width:72%;
+  height:72%;
+  object-fit:contain;
+  display:block;
+  pointer-events:none;
+  position:relative;
+  z-index:2;
+}
+.image-action-btn{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  display:block;
+  pointer-events:none;
+  padding:0;
+}
+.game-action-btn{
+  width:118px;
+  height:56px;
+  padding:6px 8px;
+  border-radius:16px;
+  overflow:visible;
+  flex:0 0 auto;
+}
+.inline-actions{align-items:center;}
+.levelup-slider{
+  position:fixed;top:-120px;left:50%;transform:translateX(-50%);
+  width:min(92%,400px);z-index:125;
+  background:linear-gradient(180deg,#ffe9a8,#f0b84e);
+  border-radius:0 0 22px 22px;padding:28px 14px 12px;
+  box-shadow:0 14px 28px rgba(105,78,134,.20);
+  transition:top .34s ease;
+  text-align:center;color:#5a3f0c;
+}
+.levelup-slider.open{top:0}
+.levelup-inner{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.levelup-close{border:0;background:rgba(255,255,255,.45);color:#5a3f0c;width:26px;height:26px;border-radius:999px;font-weight:900;flex-shrink:0}
+.levelup-mini{font-size:11px;letter-spacing:1.3px;font-weight:900;opacity:.84}
+.levelup-big{font-size:24px;line-height:1;font-weight:900;margin-top:2px}
+.levelup-sub{font-size:12px;font-weight:800;opacity:.9}
+.scene{display:none;padding:10px;animation:fadeIn .18s ease}
+.scene.active{display:block}
+@keyframes fadeIn{from{opacity:.2;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--card);border-radius:20px;padding:12px;box-shadow:0 12px 24px rgba(107,80,141,.08);border:1px solid rgba(255,255,255,.5)}
+.headline{font-size:22px;line-height:1.02;margin:0 0 6px;font-weight:900}
+.sub{margin:0;color:var(--muted);line-height:1.3;font-size:13px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.center{text-align:center}
+.btn{border:0;border-radius:999px;padding:14px 18px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;font-size:17px;font-weight:800;box-shadow:0 12px 24px rgba(141,108,255,.24)}
+.btn.secondary{background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px rgba(141,108,255,.18)}
+.btn.mini{padding:10px 12px;font-size:12px;box-shadow:0 8px 16px rgba(141,108,255,.18)}
+.mini-label{font-size:10px;letter-spacing:1.4px;color:var(--muted);margin-bottom:6px;font-weight:800}
+.practice-board,.game-board{display:grid;width:100%;position:relative}
+.practice-board{grid-template-columns:repeat(4,1fr);gap:8px}
+.game-board{grid-template-columns:repeat(6,1fr);gap:0}
+.tile{aspect-ratio:1/1;border:0;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.80),rgba(244,235,251,.80));display:flex;align-items:center;justify-content:center;font-size:clamp(18px,5.2vw,26px);box-shadow:inset 0 0 0 2px rgba(214,199,230,.62);position:relative;transition:transform .12s ease,box-shadow .12s ease,opacity .12s ease,filter .12s ease;user-select:none;-webkit-tap-highlight-color:transparent;overflow:hidden;line-height:1}
+.game-board .tile{border-radius:0}
+.game-board .tile-img{width:92%;height:92%}
+.tile.selected{transform:translateY(-2px) scale(1.04);outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 18px rgba(255,59,48,.55);background:rgba(255,59,48,.08);z-index:4}
+.tile.selected .tile-img{filter:drop-shadow(0 0 8px rgba(255,59,48,.9)) brightness(1.04)}
+.tile.matched{animation:matchedFlash .46s ease;background:rgba(255,59,48,.10);outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);z-index:5}
+.tile.matched .tile-img{filter:drop-shadow(0 0 10px rgba(255,59,48,.95)) brightness(1.08)}
+.tile.match-3{outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);background:rgba(255,59,48,.10)}
+.tile.match-4{outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);background:rgba(255,59,48,.10)}
+.tile.match-5{outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);background:rgba(255,59,48,.10)}
+.tile.match-lt{outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);background:rgba(255,59,48,.10)}
+.tile.match-cross{outline:4px solid #ff3b30;outline-offset:-4px;box-shadow:0 0 0 2px rgba(255,255,255,.98),0 0 20px rgba(255,59,48,.65);background:rgba(255,59,48,.10)}
+.tile.hint{animation:hintPulse 1s infinite}
+.tile.boom-mark{box-shadow:0 0 0 3px rgba(255,255,255,.95),0 0 18px rgba(255,111,125,.55),inset 0 0 0 2px rgba(255,111,125,.9);transform:scale(1.04)}
+.tile.dimmed{filter:grayscale(.35) brightness(.92)}
+@keyframes hintPulse{0%,100%{box-shadow:inset 0 0 0 2px rgba(198,184,222,.55);transform:scale(1)}50%{box-shadow:inset 0 0 0 3px var(--accent2),0 8px 16px rgba(242,110,196,.2);transform:scale(1.04)}}
+@keyframes matchedFlash{0%{transform:scale(1)}20%{transform:scale(1.1)}40%{transform:scale(1)}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+.practice-progress{font-weight:800;color:var(--accent);text-align:center}
+.avatars{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.avatar-choice{border:0;border-radius:22px;padding:14px 10px;font-size:34px;background:#fff;box-shadow:inset 0 0 0 2px rgba(141,108,255,.12)}
+.avatar-choice.selected{box-shadow:inset 0 0 0 3px var(--accent),0 10px 20px rgba(141,108,255,.18);transform:translateY(-2px)}
+.input{width:100%;border:0;border-radius:18px;padding:16px;font-size:17px;background:#fff;color:var(--ink);box-shadow:inset 0 0 0 2px rgba(141,108,255,.12)}
+.profile-hero{display:flex;gap:14px;align-items:center}
+.profile-avatar-wrap{position:relative;display:inline-block}
+.profile-avatar{width:64px;height:64px;border-radius:18px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.12);cursor:pointer}
+.edit-badge{position:absolute;right:-4px;bottom:-4px;width:24px;height:24px;border-radius:999px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 8px 16px rgba(141,108,255,.2);pointer-events:none}
+.profile-name-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.profile-name{font-size:22px;font-weight:900;line-height:1.02;margin-bottom:4px}
+.name-edit-btn{border:0;background:#fff;border-radius:999px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 2px rgba(141,108,255,.12);font-size:13px}
+.profile-status{color:var(--muted);font-weight:700;line-height:1.2;font-size:13px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#fff;border-radius:16px;padding:10px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.08);min-height:45px}
+.stat .num{font-size:22px;font-weight:900;margin-top:4px}
+.badges{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.badge{background:#fff;border-radius:16px;padding:10px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.08);display:flex;gap:8px;align-items:flex-start}
+.badge.locked{opacity:.48;filter:grayscale(1)}
+.badge-icon{font-size:20px;width:24px;text-align:center;flex-shrink:0}
+.badge-name{font-size:12px;font-weight:800;line-height:1.15}
+.badge-note{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.1}
+.upper-stats-shell{background:transparent !important;border:none !important;box-shadow:none !important;padding:0 !important;margin-top:-10px !important;}
+.game-top-stats{position:relative;background-image:url('images/uppercont1.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;border-radius:18px;min-height:64px;width:calc(100% + 24px);margin:0 -12px 0;}
+.upper-stats-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 76px;grid-template-rows:repeat(2,25px);gap:4px;align-items:stretch;padding:7px 12px 7px 12px;}
+.mini-stat,.status-col{position:relative;overflow:hidden;border-radius:10px;background:transparent !important;box-shadow:none !important;}
+.mini-stat-bg,.status-col-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;pointer-events:none;user-select:none;}
+.mini-stat-text,.status-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:0 8px;font-weight:900;color:#111;line-height:1;font-size:12px;}
+.mini-stat-text{font-size:13px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.status-col{grid-column:3;grid-row:1 / span 2;}
+.status-text{font-size:12px;line-height:1.12;white-space:normal;word-break:break-word;padding:10px 12px;}
+@media (max-width:430px){
+  .upper-stats-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 92px;padding:14px 14px 14px 14px;gap:6px;}
+  .mini-stat-text{font-size:12px;padding:0 8px;}
+  .status-text{font-size:11px;padding:8px 10px;}
+}
+.settings-nav-row{display:flex;justify-content:center;gap:12px;margin-bottom:10px;}
+.settings-nav-btn{min-width:132px;background:#36d8ff !important;color:#1d3b56 !important;box-shadow:0 10px 20px rgba(54,216,255,.22) !important;}
+.message{text-align:center;color:var(--accent);font-weight:800;min-height:18px;font-size:13px}
+#gameMessage{margin-top:10px;margin-bottom:2px;}
+.game-board-panel{background-image:url('images/boardbg1.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;background-color:transparent !important;border:none !important;box-shadow:none !important;padding:10px 10px 4px;}.board-footer-row{display:flex;align-items:center;gap:8px;margin-top:10px;}.board-footer-row .message{flex:1;margin:0;text-align:left;color:#111;font-weight:900;padding-left:6px;}.quick-music-btn{border:0;background:transparent;line-height:1;padding:4px 6px;cursor:pointer;filter:drop-shadow(0 2px 4px rgba(0,0,0,.18));display:flex;align-items:center;justify-content:center}.quick-music-btn img{width:42px;height:42px;object-fit:contain;display:block;}.status-col,.status-text,#dashStatus{cursor:pointer;}.status-modal-sheet{background-image:url('images/boardbg1a.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;background-color:transparent;border:none;box-shadow:0 10px 28px rgba(77,53,93,.14);padding:20px;}.status-list{max-height:320px;overflow:auto;margin-top:8px;padding-right:6px;}.status-item{display:flex;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.72);margin-bottom:6px;font-size:13px;font-weight:800;}.status-item.current{background:rgba(54,216,255,.28);outline:2px solid rgba(54,216,255,.65);}.explosion-frame{width:100%;height:100%;object-fit:cover;pointer-events:none;}
+.settings-shell{padding:12px}
+.settings-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.settings-tab{border:0;border-radius:16px;background:#fff;padding:10px 6px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:11px;font-weight:800;color:var(--ink)}
+.settings-tab.active{box-shadow:inset 0 0 0 2px rgba(141,108,255,.28),0 10px 20px rgba(141,108,255,.10);background:linear-gradient(180deg,#fff,#f7f1fd)}
+.settings-tab-icon{font-size:18px;line-height:1}
+.settings-panel{display:none;flex-direction:column;gap:10px}
+.settings-panel.active{display:flex}
+.settings-section-title{font-size:12px;letter-spacing:1.2px;color:var(--muted);font-weight:900;text-transform:uppercase}
+.settings-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.settings-mini-btn{padding:10px 12px;font-size:12px;min-width:98px}
+.settings-slider-wrap{display:flex;flex-direction:column;gap:6px}
+.settings-range{width:100%;accent-color:#8d6cff}
+.settings-danger-card{margin-top:6px;padding:12px}.settings-bottom-nav{display:flex;justify-content:center;gap:12px;margin-top:10px;}
+.board-wrap{position:relative}
+#gameScene .board-wrap{background-image:url('images/playboardbg1.png');background-size:cover;background-position:center;background-repeat:no-repeat;border-radius:20px;padding:8px;box-shadow:inset 0 0 0 2px rgba(255,255,255,.18)}
+#gameScene .game-board .tile{background:rgba(255,255,255,.20);box-shadow:inset 0 0 0 2px rgba(168,142,203,1);backdrop-filter:blur(.5px)}
+#gameScene .game-board .tile-img{opacity:1}
+.float-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.float-text{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:900;color:#fff;background:linear-gradient(135deg,var(--accent2),var(--accent));padding:7px 9px;border-radius:999px;box-shadow:0 10px 22px rgba(141,108,255,.24);animation:floatUp .95s ease forwards;white-space:nowrap}
+.float-text.combo-main{font-size:14px;padding:8px 12px;box-shadow:0 12px 24px rgba(77,53,93,.22)}
+.float-text.boom-float{background:linear-gradient(135deg,#ff8aa1,#ff6f7d)}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,0) scale(.7)}18%{opacity:1;transform:translate(-50%,-8px) scale(1)}100%{opacity:0;transform:translate(-50%,-54px) scale(1)}}
+.menu-sheet{position:fixed;bottom:52px;width:min(100%,430px);padding:0 16px;z-index:90;pointer-events:none}
+.menu-sheet-inner{background:linear-gradient(180deg, rgba(244,235,252,.97), rgba(235,225,247,.97));border-radius:24px 24px 12px 12px;box-shadow:0 -8px 24px rgba(77,53,93,.08);border:1px solid rgba(214,196,231,.8);transform:translateY(120%);transition:transform .22s ease;padding:14px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.menu-sheet.open{pointer-events:auto}
+.menu-sheet.open .menu-sheet-inner{transform:translateY(0)}
+.sheet-btn{border:0;background:#fff;border-radius:18px;padding:16px 12px;font-size:15px;font-weight:800;color:var(--ink);box-shadow:inset 0 0 0 2px rgba(141,108,255,.08)}
+.bottom-hud{position:fixed;bottom:0;width:min(100%,430px);z-index:100;height:52px;background:transparent !important;border-top:0 !important;box-shadow:none !important;display:flex;align-items:center;justify-content:space-between;padding:0;backdrop-filter:none;overflow:visible}
+.bottomhud-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;z-index:0;background:transparent !important}
+.bottom-hud > *:not(.bottomhud-bg){position:relative;z-index:1}.bottom-user{margin-left:16px}.menu-toggle{margin-right:16px}
+.bottom-user{display:flex;align-items:center;gap:8px;min-width:0}
+.bottom-avatar{width:30px;height:30px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.12);flex-shrink:0}
+.bottom-hud .mini{font-size:11px;color:var(--muted);font-weight:700}
+.menu-toggle{width:38px;height:38px;border-radius:13px;border:0;background:transparent;color:transparent;font-size:0;box-shadow:none;padding:0;overflow:hidden}
+.menu-toggle img{width:100%;height:100%;object-fit:contain;display:block}
+.shake-alert{color:var(--danger);font-weight:900}
+.danger-zone{background:linear-gradient(180deg, rgba(255,238,241,.98), rgba(255,228,235,.98));border:1px solid rgba(255,160,180,.65)}
+.danger-btn{background:linear-gradient(135deg,#ff8aa1,#ff6f7d)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(38,24,49,.28);backdrop-filter:blur(4px);z-index:120;display:none;align-items:center;justify-content:center;padding:12px}
+.modal-backdrop.open{display:flex}
+.modal-sheet{width:min(100%,430px);background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(246,238,252,.98));border-radius:24px;padding:14px;box-shadow:0 10px 28px rgba(77,53,93,.14)}
+.modal-actions{display:flex;gap:8px;margin-top:12px}
+.success-backdrop{position:fixed;inset:0;background:rgba(56,34,78,.30);backdrop-filter:blur(5px);z-index:145;display:none;align-items:center;justify-content:center;padding:18px}
+.success-backdrop.open{display:flex}
+.success-card{width:min(100%,340px);background:linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,240,255,.98));border-radius:26px;padding:22px;text-align:center;box-shadow:0 14px 40px rgba(77,53,93,.18)}
+.success-main{font-size:28px;font-weight:900;line-height:1.05;margin-bottom:8px}
+.boom-bar-shell{background:transparent !important;border:none !important;box-shadow:none !important;padding:0 !important}.boom-bar{display:grid;grid-template-columns:auto repeat(5,1fr);gap:8px;align-items:center;background-image:url('images/berryboomcont1.png');background-size:100% 100%;background-position:center;background-repeat:no-repeat;min-height:74px;padding:10px 10px 12px;border-radius:18px}
+.boom-bar-label{display:flex;align-items:center;justify-content:flex-start;white-space:nowrap}.boom-bar-label-img{display:block;max-width:100%;width:88px;height:auto;object-fit:contain}
+.boom-chip{position:relative;border:0;border-radius:16px;background:linear-gradient(180deg,#fff,#f4ebfb);aspect-ratio:1/1;min-height:0;padding:0;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:inset 0 0 0 2px rgba(141,108,255,.12);overflow:visible}
+.boom-chip.off{opacity:.42;filter:grayscale(1)}
+.boom-chip.on{box-shadow:inset 0 0 0 2px rgba(141,108,255,.3),0 8px 16px rgba(141,108,255,.12)}
+.boom-chip-badge{position:absolute;top:-5px;right:-4px;min-width:18px;height:18px;border-radius:999px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 6px 12px rgba(141,108,255,.2);z-index:10}
+.row-between{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.goal-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
+.goal-text{font-size:13px;font-weight:900;color:var(--ink);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.goal-sub{font-size:11px;color:var(--muted);font-weight:800;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.inline-actions{display:flex;gap:8px;flex-wrap:nowrap;align-items:center}
+.inline-actions .btn{padding:0;background:transparent;box-shadow:none;border:0;width:66px;height:66px;border-radius:0;overflow:visible;display:block;flex:0 0 66px}
+.popup-title{font-size:22px;line-height:1.05;margin:0 0 6px;font-weight:900}
+.popup-html{font-size:13px;color:var(--muted);line-height:1.3}
+.popup-html strong{color:var(--ink)}
+
+.tutorial-tile-img{width:78%;height:78%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.tile.tutorial-live{cursor:pointer}
+.tile.tutorial-dead:not(.hint){cursor:default}
+
+.tutorial-board-shell{
+  background-image:url('images/playboardbg1.png');
+  background-size:cover;
+  background-position:center;
+  background-repeat:no-repeat;
+  border-radius:18px;
+  padding:10px;
+}
+.practice-board .tile{
+  border-radius:10px;
+}
+
+
+.popup-boom-preview-wrap{display:flex;justify-content:center;align-items:center;margin:10px 0 4px;}
+.popup-boom-preview{position:relative;width:78px;height:78px;display:flex;align-items:center;justify-content:center;}
+.popup-boom-preview .boom-chip-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;}
+.popup-boom-preview .boom-chip-img{position:relative;z-index:2;width:70%;height:70%;object-fit:contain;}
+.badges{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:none;}
+.badge{cursor:pointer}.popup-reward-box-wrap{display:flex;justify-content:center;align-items:center;margin:10px 0 4px}.popup-reward-box-img{width:110px;height:110px;object-fit:contain;display:block}
+
+</style>
+</head>
+<body>
+<div class="top-peek-tab"><img src="images/TopHud1.png" class="tophud-img" alt="Berry Boom Match" /></div>
+<div id="levelupSlider" class="levelup-slider">
+  <div class="levelup-inner">
+    <div style="flex:1;">
+      <div class="levelup-mini">LEVEL UP!</div>
+      <div id="levelupBig" class="levelup-big">LEVEL 2</div>
+      <div id="levelupSub" class="levelup-sub">Berry Picker</div>
+    </div>
+    <button id="levelupSliderClose" class="levelup-close" type="button">×</button>
+  </div>
+</div>
+
+<div class="app">
+  <section id="practiceScene" class="scene active">
+    <div class="stack">
+      <div class="card center">
+        <div class="mini-label">FIRST TIME ONLY</div>
+        <h1 class="headline">HEY! Let’s Practice first!</h1>
+        <p class="sub">Simple tutorial: do one easy practice match, then one final practice board. Each board is fully pre-built and never random.</p>
+      </div>
+      <div class="card">
+        <div class="mini-label">PRACTICE BOARD</div>
+        <div id="practiceProgress" class="practice-progress">Step 1 of 2</div>
+        <div class="board-wrap tutorial-board-shell" style="margin-top:14px;">
+          <div id="practiceBoard" class="practice-board"></div>
+          <div id="practiceFloats" class="float-layer"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="profileScene" class="scene">
+    <div class="stack">
+      <div class="card">
+        <div class="mini-label">WELCOME</div>
+        <h1 class="headline">Hey! What’s your name?</h1>
+        <p class="sub">Pick a profile style and we’ll take you straight to your dashboard.</p>
+      </div>
+      <div class="card stack">
+        <div>
+          <div class="mini-label">USERNAME</div>
+          <input id="usernameInput" class="input" maxlength="18" placeholder="Enter a username" />
+        </div>
+        <div>
+          <div class="mini-label">PICK A PROFILE IMAGE</div>
+          <div id="avatarGrid" class="avatars"></div>
+        </div>
+        <button id="saveProfileBtn" class="btn">Create My Profile</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="dashboardScene" class="scene">
+    <div class="stack">
+      <div class="card">
+        <div class="profile-hero">
+          <div class="profile-avatar-wrap">
+            <div id="dashAvatar" class="profile-avatar">🍓</div>
+            <div class="edit-badge">✎</div>
+          </div>
+          <div>
+            <div class="profile-name-row">
+              <div id="dashName" class="profile-name">Player</div>
+              <button id="nameEditOpenBtn" class="name-edit-btn">✎</button>
+            </div>
+            <div id="dashStatus" class="profile-status">Level 1 · Sprout Starter</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button id="playNowBtn" class="btn" style="width:100%;">Play Now →</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="mini-label">STATS</div>
+        <div class="grid-3">
+          <div class="stat"><div class="mini-label">TOTAL SCORE</div><div id="statScore" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">LEVEL</div><div id="statLevel" class="num">1</div></div>
+          <div class="stat"><div class="mini-label">TIME PLAYED</div><div id="statTimePlayed" class="num">00:00</div></div>
+          <div class="stat"><div class="mini-label">TOTAL MOVES</div><div id="statMoves" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">TOTAL MATCHES</div><div id="statMatches" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">BEST STREAK</div><div id="statBestStreak" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">BOOMS COLLECTED</div><div id="statBoomCollected" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">BOOMS USED</div><div id="statBoomUsed" class="num">0</div></div>
+          <div class="stat"><div class="mini-label">BOOMS READY</div><div id="statBoomReady" class="num">0</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="mini-label">BADGES</div>
+        <div id="badgeGrid" class="badges"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="gameScene" class="scene">
+    <div class="stack">
+      <div class="card upper-stats-shell">
+        <div class="game-top-stats">
+          <div class="upper-stats-grid">
+            <div class="mini-stat"><img src="images/upperminicont1.png" class="mini-stat-bg" alt="" /><div id="gameLevel" class="mini-stat-text">Level: 1</div></div>
+            <div class="mini-stat"><img src="images/upperminicont1.png" class="mini-stat-bg" alt="" /><div id="gameTime" class="mini-stat-text">Time: 00:00</div></div>
+            <div class="mini-stat"><img src="images/upperminicont1.png" class="mini-stat-bg" alt="" /><div id="gameXp" class="mini-stat-text">XP: 0/100</div></div>
+            <div class="mini-stat"><img src="images/upperminicont1.png" class="mini-stat-bg" alt="" /><div id="gameStreak" class="mini-stat-text">Streak: 0</div></div>
+            <div class="status-col"><img src="images/upperrightcol1.png" class="status-col-bg" alt="" /><div id="gameStatus" class="status-text">Sprout Starter</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card boom-bar-shell">
+        <div id="boomBar" class="boom-bar">
+          <div class="boom-bar-label"><img src="images/berrybooms1.png" class="boom-bar-label-img" alt="Berry Booms" /></div>
+          <button class="boom-chip off" data-boom-type="🍓" type="button"><img src="images/boomcont001a.png" class="boom-chip-bg" alt="" /><img src="images/berry1a.png" class="boom-chip-img" data-berry="1" alt="" /><span class="boom-chip-badge">0</span></button>
+          <button class="boom-chip off" data-boom-type="🍋" type="button"><img src="images/boomcont001a.png" class="boom-chip-bg" alt="" /><img src="images/berry2a.png" class="boom-chip-img" data-berry="2" alt="" /><span class="boom-chip-badge">0</span></button>
+          <button class="boom-chip off" data-boom-type="🫐" type="button"><img src="images/boomcont001a.png" class="boom-chip-bg" alt="" /><img src="images/berry3a.png" class="boom-chip-img" data-berry="3" alt="" /><span class="boom-chip-badge">0</span></button>
+          <button class="boom-chip off" data-boom-type="🍇" type="button"><img src="images/boomcont001a.png" class="boom-chip-bg" alt="" /><img src="images/berry4a.png" class="boom-chip-img" data-berry="4" alt="" /><span class="boom-chip-badge">0</span></button>
+          <button class="boom-chip off" data-boom-type="🍎" type="button"><img src="images/boomcont001a.png" class="boom-chip-bg" alt="" /><img src="images/berry5a.png" class="boom-chip-img" data-berry="5" alt="" /><span class="boom-chip-badge">0</span></button>
+        </div>
+      </div>
+      <div class="card game-board-panel">
+        <div class="row-between">
+          <div class="goal-copy">
+            <div class="mini-label" style="margin:0;">GOAL</div>
+            <div id="goalText" class="goal-text">Make 5 matches</div>
+            <div id="goalSub" class="goal-sub">0/5 · Reward 120 XP</div>
+          </div>
+          <div class="inline-actions">
+            <button id="streakSaverBtn" class="btn mini secondary game-action-btn" type="button"><img src="images/streaksaver1.png" class="image-action-btn" alt="Streak Saver" /></button>
+            <button id="quickShuffleBtn" class="btn mini secondary game-action-btn" type="button"><img src="images/shakeup1.png" class="image-action-btn" alt="Shake Up" /></button>
+            <button id="mysteryBoxBtn" class="btn mini secondary game-action-btn" type="button"><img src="images/mysteryberrybox1.png" class="image-action-btn" alt="Mystery Berry Box" /></button>
+          </div>
+        </div>
+        <div class="board-wrap" style="margin-top:8px;">
+          <div id="gameBoard" class="game-board"></div>
+          <div id="gameFloats" class="float-layer"></div>
+        </div>
+        <div class="board-footer-row"><div id="gameMessage" class="message">Tap one tile, then a neighbor.</div><button id="quickMusicBtn" class="quick-music-btn" type="button" aria-label="Music Settings"><img src="images/audio1.png" alt="Audio" /></button></div>
+        <div id="shakeNotice" class="message" style="margin-top:6px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="settingsScene" class="scene">
+    <div class="stack">
+      <div class="card">
+        <div class="mini-label">SETTINGS</div>
+        <h1 class="headline">Game Settings</h1>
+        <p class="sub">Customize your game, manage your account, and review help any time.</p>
+      </div>
+
+      <div class="card settings-shell">
+        <div class="settings-nav-row"><button id="settingsDashboardBtn" class="btn mini settings-nav-btn" type="button">DASHBOARD</button><button id="settingsPlayBtn" class="btn mini settings-nav-btn" type="button">GO PLAY!</button></div>
+        <div class="settings-tabs">
+          <button class="settings-tab active" data-settings-tab="tutorial" type="button"><span class="settings-tab-icon">🎓</span><span>Tutorial</span></button>
+          <button class="settings-tab" data-settings-tab="faq" type="button"><span class="settings-tab-icon">❓</span><span>FAQ</span></button>
+          <button class="settings-tab" data-settings-tab="music" type="button"><span class="settings-tab-icon">🎵</span><span>Music</span></button>
+          <button class="settings-tab" data-settings-tab="account" type="button"><span class="settings-tab-icon">👤</span><span>Account</span></button>
+        </div>
+
+        <div id="settingsTab_tutorial" class="settings-panel active">
+          <div class="settings-section-title">How to Play</div>
+          <p class="sub">Tap one tile, then tap a neighboring tile to swap. Match 3 or more berries to clear them, earn XP, build streaks, and trigger stronger chain reactions.</p>
+          <p class="sub">Berry Booms clear every matching berry on the board. Mystery Berry Box and random drop rewards can give you extra Berry Booms to store for later.</p>
+          <p class="sub">Shake Up refreshes the board whenever you want a new layout.</p>
+        </div>
+
+        <div id="settingsTab_faq" class="settings-panel">
+          <div class="settings-section-title">Quick Answers</div>
+          <p class="sub"><strong>How do I refresh the board?</strong> Use Shake Up from the bottom menu or the Shake Up image button in the play scene.</p>
+          <p class="sub"><strong>What is a streak?</strong> Every successful match move increases your streak. A failed swap resets it.</p>
+          <p class="sub"><strong>How do Berry Booms work?</strong> Tap a stored Berry Boom, confirm it, and it will explode all of that berry type from the board.</p>
+          <p class="sub"><strong>Where is my progress saved?</strong> Your profile and progress are stored locally on this device.</p>
+        </div>
+
+        <div id="settingsTab_music" class="settings-panel">
+          <div class="settings-section-title">Music & Sound</div>
+          <div class="settings-row">
+            <div>
+              <div class="mini-label">BACKGROUND MUSIC</div>
+              <div class="sub">Loop the current soundtrack while you play.</div>
+            </div>
+            <button id="musicToggleBtn" class="btn secondary settings-mini-btn" type="button">Music On</button>
+          </div>
+          <div class="settings-slider-wrap">
+            <div class="mini-label">MUSIC VOLUME</div>
+            <input id="musicVolumeSlider" class="settings-range" type="range" min="0" max="1" step="0.01" value="0.2" />
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="mini-label">SOUND EFFECTS</div>
+              <div class="sub">Master switch for future pop, match, and boom effects.</div>
+            </div>
+            <button id="sfxToggleBtn" class="btn secondary settings-mini-btn" type="button">SFX On</button>
+          </div>
+          <div class="settings-slider-wrap">
+            <div class="mini-label">SFX VOLUME</div>
+            <input id="sfxVolumeSlider" class="settings-range" type="range" min="0" max="1" step="0.01" value="0.75" />
+          </div>
+          <div class="settings-bottom-nav">
+            <button id="settingsDashboardBtnBottom" class="btn mini settings-nav-btn" type="button">DASHBOARD</button>
+            <button id="settingsPlayBtnBottom" class="btn mini settings-nav-btn" type="button">GO PLAY!</button>
+          </div>
+        </div>
+
+        <div id="settingsTab_account" class="settings-panel">
+          <div class="settings-section-title">Account</div>
+          <p class="sub"><strong>Username:</strong> <span id="settingsAccountName">Player</span></p>
+          <p class="sub"><strong>Avatar:</strong> <span id="settingsAccountAvatar">🍓</span></p>
+          <p class="sub"><strong>Level:</strong> <span id="settingsAccountLevel">1</span></p>
+          <p class="sub"><strong>Saved Progress:</strong> Stored locally on this device.</p>
+          <div class="card danger-zone settings-danger-card">
+            <div class="mini-label">⚠️ DANGER ZONE ⚠️</div>
+            <p class="sub">This permanently clears saved progress on this device.</p>
+            <button id="resetAllBtn" class="btn danger-btn" style="width:100%;">Reset Progress</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="menuSheet" class="menu-sheet">
+    <div class="menu-sheet-inner">
+      <button class="sheet-btn" data-go="dashboard">Dashboard</button>
+      <button class="sheet-btn" data-go="game">Play</button>
+      <button class="sheet-btn" data-go="settings">Settings</button>
+      <button id="helpBtn" class="sheet-btn">Help</button>
+    </div>
+  </div>
+
+  <div class="bottom-hud">
+    <img src="images/bottomhud1.png" class="bottomhud-bg" alt="" />
+    <div class="bottom-user"><div id="bottomAvatar" class="bottom-avatar">🍓</div><div class="mini" id="bottomSummary">Ready to bloom.</div></div>
+    <button id="menuToggle" class="menu-toggle"><img id="menuToggleImg" src="images/berrymenubutton1.png" alt="Menu" /></button>
+  </div>
+</div>
+
+<div id="avatarModal" class="modal-backdrop">
+  <div class="modal-sheet">
+    <div class="mini-label">CHANGE PROFILE IMAGE</div>
+    <div id="avatarModalGrid" class="avatars"></div>
+    <div class="modal-actions"><button id="avatarModalClose" class="btn secondary" style="flex:1;">Close</button></div>
+  </div>
+</div>
+
+<div id="nameModal" class="modal-backdrop">
+  <div class="modal-sheet">
+    <div class="mini-label">CHANGE NAME</div>
+    <input id="nameModalInput" class="input" maxlength="18" placeholder="Enter a new username" />
+    <div class="modal-actions">
+      <button id="nameModalCancel" class="btn secondary" style="flex:1;">Cancel</button>
+      <button id="nameModalSave" class="btn" style="flex:1;">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="tutorialNextModal" class="success-backdrop">
+  <div class="success-card">
+    <div class="mini-label">NICE!</div>
+    <div class="success-main">GREAT JOB!</div>
+    <div class="sub">Ok, one more!</div>
+    <button id="tutorialNextBtn" class="btn" style="width:100%;margin-top:12px;">GO!</button>
+  </div>
+</div>
+
+<div id="successModal" class="success-backdrop">
+  <div class="success-card">
+    <div class="mini-label">TUTORIAL COMPLETE</div>
+    <div class="success-main">GREAT JOB!</div>
+    <div class="sub">You’re ready to build your profile.</div>
+  </div>
+</div>
+
+<div id="actionModal" class="modal-backdrop">
+  <div class="modal-sheet">
+    <div id="actionModalLabel" class="mini-label">BERRY BOOM</div>
+    <h2 id="actionModalTitle" class="popup-title">Title</h2>
+    <div id="actionModalBody" class="popup-html"></div>
+    <div id="actionModalActions" class="modal-actions"></div>
+  </div>
+</div>
+
+<div id="statusModal" class="modal-backdrop">
+  <div class="modal-sheet status-modal-sheet">
+    <div class="row-between" style="align-items:center;">
+      <div class="mini-label" style="margin:0;">STATUS LEVELS</div>
+      <button id="statusModalClose" class="btn secondary" type="button" style="padding:10px 14px;">Close</button>
+    </div>
+    <div id="statusList" class="status-list"></div>
+  </div>
+</div>
+
+<audio id="bgMusic" preload="auto" playsinline src="backgroundtrack1.mp3"></audio>
+
+<script>
+const STORAGE_KEY="berryBloomMatchTutorialFixed";
+const avatars=["🍓","🌸","🐱","🐶","⭐","🦋"];
+const tiles=["🍓","🍋","🫐","🍇","🍎"];
+const berryMap={"🍓":1,"🍋":2,"🫐":3,"🍇":4,"🍎":5};
+const blank="";
+const tutorialSteps = [
+  {
+    board:["🍓","🍋","🍓","🍓","🍇","🍓","🍋","🍎","🍋","🍇","🍎","🍋","🍎","🍇","🍋","🍎"],
+    live:[1,5],
+    successIndices:[0,1,2],
+    label:"Step 1 of 2 · Tap the 2 highlighted berries"
+  },
+  {
+    board:["🍇","🍋","🍎","🍇","🍓","🍎","🍋","🍎","🍋","🍇","🍎","🍓","🍓","🍓","🍋","🍓"],
+    live:[14,15],
+    successIndices:[12,13,14,15],
+    label:"Step 2 of 2 · Tap the 2 highlighted berries"
+  }
+];
+function emptyBerryBooms(){return {"🍓":0,"🍋":0,"🫐":0,"🍇":0,"🍎":0};}
+const goals=[
+  {id:"match5", text:"Make 5 matches", target:5, reward:120, progress:s=>s.totalMatches||0},
+  {id:"score2k", text:"Score 2.5K", target:2500, reward:180, progress:s=>s.totalScore||0},
+  {id:"clear25", text:"Clear 25 tiles", target:25, reward:150, progress:s=>s.tilesCleared||0},
+  {id:"four2", text:"Make 2 four-matches", target:2, reward:220, progress:s=>s.fourMatches||0},
+  {id:"streak15", text:"Hit 15 streak", target:15, reward:300, progress:s=>s.currentStreak||0},
+  {id:"streak25", text:"Hit 25 streak", target:25, reward:450, progress:s=>s.currentStreak||0},
+  {id:"boom3", text:"Use 3 booms", target:3, reward:300, progress:s=>s.berryBoomUsed||0},
+  {id:"shake2", text:"Use 2 shakes", target:2, reward:250, progress:s=>s.totalShuffles||0},
+  {id:"triple", text:"3 booms + 3 shakes", target:6, reward:500, progress:s=>(s.berryBoomUsed||0)+(s.totalShuffles||0)},
+  {id:"combo3", text:"Do 3 combos", target:3, reward:350, progress:s=>s.totalCombos||0}
+];
+const statusLevels=[
+  [1,"Berry Picker"],[3,"Garden Rookie"],[5,"Fresh Sprout"],[7,"Seed Starter"],[10,"Patch Worker"],
+  [15,"Berry Gatherer"],[20,"Field Runner"],[25,"Harvest Helper"],[30,"Orchard Scout"],[40,"Berry Hunter"],
+  [50,"Harvest Master"],[75,"Orchard Keeper"],[100,"Crop Commander"],[150,"Berry Boss"],[200,"Harvest King"],
+  [250,"Orchard Overlord"],[300,"Crop Conqueror"],[450,"Field Dominator"],[700,"Berry Legend"],[850,"Harvest Titan"],
+  [1000,"Orchard Emperor"],[1500,"Bloom Champion"],[2000,"Berry God"],[3000,"Bloom Architect"],[5000,"Nature Sovereign"],[10000,"Infinity Bloom"]
+];
+function sumBerryBooms(booms){return Object.values(booms||{}).reduce((a,b)=>a+(Number(b)||0),0);}
+function formatCompactNumber(n){if(n>=1_000_000)return (n/1_000_000).toFixed(n%1_000_000===0?0:1)+"M"; if(n>=1000)return (n/1000).toFixed(n%1000===0?0:1)+"K"; return String(n);}
+function formatLongTimeTarget(s){const d=Math.floor(s/86400); if(d>=365)return"1 year+"; if(d>=30)return `${Math.round(d/30)} months`; if(d>=1)return `${d} days`; const h=Math.floor(s/3600); if(h>=1)return `${h} hours`; return `${Math.floor(s/60)} minutes`;}
+function formatTime(t){const d=Math.floor(t/86400),h=Math.floor((t%86400)/3600),m=Math.floor((t%3600)/60),s=t%60; if(d>0)return `${d}d ${String(h).padStart(2,"0")}h`; if(h>0)return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}h`; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;}
+function formatClockTime(t){const total=Math.max(0,Math.floor(t||0));const h=Math.floor(total/3600),m=Math.floor((total%3600)/60),s=total%60; if(h>0)return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;}
+function formatPlayTime(t){const total=Math.max(0,Math.floor(t||0));const d=Math.floor(total/86400),h=Math.floor((total%86400)/3600),m=Math.floor((total%3600)/60),s=total%60; if(d>0)return `${d}d ${h}h`; if(total>=3600)return `${String(Math.floor(total/3600)).padStart(2,"0")}:${String(m).padStart(2,"0")}`; return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;}
+function xpToNextLevel(level){return Math.floor(75 + Math.pow(level,1.35)*25)}
+function getLevelFromXp(totalXp){let level=1, rem=totalXp; while(rem>=xpToNextLevel(level)&&level<10000){rem-=xpToNextLevel(level); level++} return level}
+function getXpProgress(totalXp){let level=1, rem=totalXp; while(rem>=xpToNextLevel(level)&&level<10000){rem-=xpToNextLevel(level); level++} return {level,current:rem,needed:xpToNextLevel(level)}}
+function getStatusTitle(level){
+  const ranges=[
+    [1,2,"Berry Picker"],[3,4,"Garden Rookie"],[5,6,"Fresh Sprout"],[7,9,"Seed Starter"],[10,14,"Patch Worker"],
+    [15,19,"Berry Gatherer"],[20,24,"Field Runner"],[25,29,"Harvest Helper"],[30,39,"Orchard Scout"],[40,49,"Berry Hunter"],
+    [50,74,"Harvest Master"],[75,99,"Orchard Keeper"],[100,149,"Crop Commander"],[150,199,"Berry Boss"],[200,249,"Harvest King"],
+    [250,299,"Orchard Overlord"],[300,449,"Crop Conqueror"],[450,699,"Field Dominator"],[700,849,"Berry Legend"],
+    [850,999,"Harvest Titan"],[1000,1499,"Orchard Emperor"],[1500,1999,"Bloom Champion"],[2000,2999,"Berry God"],
+    [3000,4999,"Bloom Architect"],[5000,9999,"Nature Sovereign"],[10000,999999999,"Infinity Bloom"]
+  ];
+  for(const [a,b,name] of ranges){ if(level>=a && level<=b) return name; }
+  return "Infinity Bloom";
+}
+function buildBadgeDefs(){
+  const defs=[];
+  [100,250,500,1000,2500,5000,10000,25000,50000,100000,250000,500000,1000000,2500000,5000000].forEach((n,i)=>defs.push({id:`score_${n}`,icon:"🏅",name:`Score Hunter ${i+1}`,note:`Reach ${formatCompactNumber(n)} total score.`,check:s=>s.totalScore>=n}));
+  [5,10,25,50,100,250,500,1000,2500,5000,10000,25000,50000,100000,250000].forEach((n,i)=>defs.push({id:`moves_${n}`,icon:"👣",name:`Move Maker ${i+1}`,note:`Reach ${formatCompactNumber(n)} total moves.`,check:s=>s.totalMoves>=n}));
+  [5,10,25,50,100,250,500,1000,2500,5000,10000,25000,50000,100000,250000].forEach((n,i)=>defs.push({id:`matches_${n}`,icon:"💥",name:`Match Master ${i+1}`,note:`Make ${formatCompactNumber(n)} total matches.`,check:s=>s.totalMatches>=n}));
+  [2,3,5,7,10,15,20,25,30,40,50,75,100,150,200].forEach((n,i)=>defs.push({id:`level_${n}`,icon:"🌟",name:`Level Legend ${i+1}`,note:`Reach level ${formatCompactNumber(n)}.`,check:s=>getLevelFromXp(s.totalXp)>=n}));
+  [300,900,1800,3600,7200,18000,36000,86400,172800,604800,1209600,2592000].forEach((n,i)=>defs.push({id:`time_${n}`,icon:"⏱️",name:`Time Keeper ${i+1}`,note:`Play for ${formatLongTimeTarget(n)} total time.`,check:s=>(s.sessionSeconds||0)>=n}));
+  [1,3,5,10,20,35,50,75,100,150,250,500].forEach((n,i)=>defs.push({id:`combo_${n}`,icon:"⚡",name:`Combo Crafter ${i+1}`,note:`Trigger ${formatCompactNumber(n)} combo chains.`,check:s=>(s.totalCombos||0)>=n}));
+  [1,3,5,10,20,35,50,100,250,500].forEach((n,i)=>defs.push({id:`boom_${n}`,icon:"💣",name:`Boom Blaster ${i+1}`,note:`Use ${formatCompactNumber(n)} Berry Booms.`,check:s=>(s.berryBoomUsed||0)>=n}));
+  [1,2,5,10,20,35,50,100].forEach((n,i)=>defs.push({id:`shake_${n}`,icon:"🔄",name:`Board Shaker ${i+1}`,note:`Use ${formatCompactNumber(n)} Shake Ups.`,check:s=>(s.totalShuffles||0)>=n}));
+  [5,10,15,25,40,60,80,120,200,300].forEach((n,i)=>defs.push({id:`streak_${n}`,icon:"🔥",name:`Streak Star ${i+1}`,note:`Hit a live streak of ${formatCompactNumber(n)}.`,check:s=>(s.bestStreak||0)>=n}));
+  [1,3,5,10,20,35,50,75,100,150].forEach((n,i)=>defs.push({id:`goals_${n}`,icon:"🎯",name:`Goal Getter ${i+1}`,note:`Complete ${formatCompactNumber(n)} board goals.`,check:s=>(s.goalsCompleted||0)>=n}));
+  return defs;
+}
+const badgeDefs=buildBadgeDefs();
+function getUnlockedBadgeCount(s){return badgeDefs.filter(def=>def.check(s)).length}
+function defaultState(){return {practiced:false,profileCreated:false,username:"",avatar:"🍓",totalScore:0,totalMoves:0,totalMatches:0,totalXp:0,totalShuffles:0,sessionSeconds:0,totalCombos:0,fourMatches:0,megaMatches:0,ltMatches:0,crossMatches:0,nameChanges:0,avatarChanges:0,lastLevelShown:1,berryBooms:emptyBerryBooms(),berryBoomCollected:0,berryBoomUsed:0,currentStreak:0,bestStreak:0,firstRealMatchDone:false,firstFreeBoomGranted:false,musicEnabled:true,musicVolume:0.2,sfxEnabled:true,sfxVolume:0.75,settingsTab:"tutorial",activeGoalIndex:0,goalsCompleted:0,tilesCleared:0,musicTrackIndex:0,streakSavers:1};}
+function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY); if(raw){const loaded={...defaultState(), ...JSON.parse(raw)};loaded.berryBooms={...emptyBerryBooms(), ...(loaded.berryBooms||{})};return loaded;}}catch(e){} return defaultState();}
+let state=loadState();
+function saveState(){localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+const scenes={practice:document.getElementById("practiceScene"),profile:document.getElementById("profileScene"),dashboard:document.getElementById("dashboardScene"),game:document.getElementById("gameScene"),settings:document.getElementById("settingsScene")};
+const practiceBoardEl=document.getElementById("practiceBoard"), practiceFloatsEl=document.getElementById("practiceFloats"), practiceProgressEl=document.getElementById("practiceProgress");
+const avatarGrid=document.getElementById("avatarGrid"), usernameInput=document.getElementById("usernameInput");
+const dashAvatar=document.getElementById("dashAvatar"), bottomAvatar=document.getElementById("bottomAvatar"), dashName=document.getElementById("dashName"), dashStatus=document.getElementById("dashStatus");
+const statScore=document.getElementById("statScore"), statLevel=document.getElementById("statLevel"), statMoves=document.getElementById("statMoves"), statMatches=document.getElementById("statMatches"), statTimePlayed=document.getElementById("statTimePlayed"), statBestStreak=document.getElementById("statBestStreak"), statBoomCollected=document.getElementById("statBoomCollected"), statBoomUsed=document.getElementById("statBoomUsed"), statBoomReady=document.getElementById("statBoomReady"), badgeGrid=document.getElementById("badgeGrid");
+const gameBoardEl=document.getElementById("gameBoard"), gameFloatsEl=document.getElementById("gameFloats"), gameLevelEl=document.getElementById("gameLevel"), gameXpEl=document.getElementById("gameXp"), gameStatusEl=document.getElementById("gameStatus"), gameTimeEl=document.getElementById("gameTime"), gameStreakEl=document.getElementById("gameStreak"), gameMessageEl=document.getElementById("gameMessage"), shakeNoticeEl=document.getElementById("shakeNotice"), boomBarEl=document.getElementById("boomBar"), goalTextEl=document.getElementById("goalText"), goalSubEl=document.getElementById("goalSub");
+const bottomSummaryEl=document.getElementById("bottomSummary"), menuSheet=document.getElementById("menuSheet");
+const avatarModal=document.getElementById("avatarModal"), avatarModalGrid=document.getElementById("avatarModalGrid"), nameModal=document.getElementById("nameModal"), nameModalInput=document.getElementById("nameModalInput");
+const tutorialNextModal=document.getElementById("tutorialNextModal"), tutorialNextBtn=document.getElementById("tutorialNextBtn"), successModal=document.getElementById("successModal");
+const actionModal=document.getElementById("actionModal"), actionModalLabel=document.getElementById("actionModalLabel"), actionModalTitle=document.getElementById("actionModalTitle"), actionModalBody=document.getElementById("actionModalBody"), actionModalActions=document.getElementById("actionModalActions");
+const statusModal=document.getElementById("statusModal"), statusList=document.getElementById("statusList");
+const levelupSlider=document.getElementById("levelupSlider"), levelupBig=document.getElementById("levelupBig"), levelupSub=document.getElementById("levelupSub");
+const settingsTabs=[...document.querySelectorAll(".settings-tab")], settingsPanels=[...document.querySelectorAll(".settings-panel")];
+const settingsAccountName=document.getElementById("settingsAccountName"), settingsAccountAvatar=document.getElementById("settingsAccountAvatar"), settingsAccountLevel=document.getElementById("settingsAccountLevel");
+const bgMusic=document.getElementById("bgMusic"), musicToggleBtn=document.getElementById("musicToggleBtn"), musicVolumeSlider=document.getElementById("musicVolumeSlider"), sfxToggleBtn=document.getElementById("sfxToggleBtn"), sfxVolumeSlider=document.getElementById("sfxVolumeSlider");
+let selectedAvatar=state.avatar||avatars[0], gameTimerInterval=null;
+let practice=null, game=null;
+let levelupQueue=[], levelupTimer=null;
+let previousScene="dashboard";
+let currentBerryAnim=1;
+let berryAnimRunning=false;
+let berryAnimStarted=false;
+
+function setTileVisual(square,value,useImages=false){
+  square.classList.remove("selected","matched","hint","match-3","match-4","match-5","match-lt","match-cross","boom-mark","dimmed");
+  if(!useImages){
+    square.textContent=value;
+    return;
+  }
+  const berryId=berryMap[value];
+  square.innerHTML = berryId ? `<img src="images/berry${berryId}a.png" class="tile-img" data-berry="${berryId}" alt="" />` : "";
+}
+
+function berryImageHtml(value,cls='inline-berry'){
+  const berryId=berryMap[value];
+  if(!berryId) return value;
+  return `<img src="images/berry${berryId}a.png" class="${cls}" alt="" />`;
+}
+function berryLabelHtml(value){
+  return `${berryImageHtml(value)} <span>${value==='🍎' ? 'Berry Boom' : 'Berry Boom'}</span>`;
+}
+
+function syncAnimatedBerryFrame(berryId,frameLetter){
+  document.querySelectorAll(`#gameBoard img[data-berry="${berryId}"]`).forEach(img=>{
+    img.src=`images/berry${berryId}${frameLetter}.png`;
+  });
+}
+
+function animateBerryType(berryId){
+  if(berryAnimRunning) return;
+  berryAnimRunning=true;
+  const frames=["a","b","c","d","e","d","c","b","a"];
+  let frameIndex=0;
+  const interval=setInterval(()=>{
+    syncAnimatedBerryFrame(berryId,frames[frameIndex]);
+    frameIndex++;
+    if(frameIndex>=frames.length){
+      clearInterval(interval);
+      setTimeout(()=>{
+        berryAnimRunning=false;
+        currentBerryAnim++;
+        if(currentBerryAnim>5) currentBerryAnim=1;
+        animateBerryType(currentBerryAnim);
+      },3000);
+    }
+  },80);
+}
+
+function startBerryAnimationLoop(){
+  if(berryAnimStarted) return;
+  berryAnimStarted=true;
+  setTimeout(()=>animateBerryType(1),2000);
+}
+
+let boomBgFrameIndex=0;
+const boomBgFrames=['a','b','c','d'];
+setInterval(()=>{
+  boomBgFrameIndex=(boomBgFrameIndex+1)%boomBgFrames.length;
+  document.querySelectorAll('.boom-chip.on .boom-chip-bg').forEach(img=>{
+    img.src=`images/boomcont001${boomBgFrames[boomBgFrameIndex]}.png`;
+  });
+},180);
+
+
+function showScene(name){if(name!=="settings"){previousScene=name;} Object.values(scenes).forEach(scene=>scene.classList.remove("active")); scenes[name].classList.add("active"); menuSheet.classList.remove("open"); updateMenuButtonVisual(); updateBottomSummary(name); if(name==="dashboard") renderDashboard(); if(name==="settings") updateSettingsView(); if(name==="game"){ if(!game) initGameBoard(); renderGameHud(); renderBerryBoomBar(); updateGoalDisplay(); startGameTimer(); }}
+function updateBottomSummary(sceneName){const level=getLevelFromXp(state.totalXp), status=getStatusTitle(level); bottomAvatar.textContent=state.avatar||"🍓"; if(sceneName==="practice") bottomSummaryEl.textContent="Quick practice first."; else if(sceneName==="profile") bottomSummaryEl.textContent="Create your profile."; else if(sceneName==="game") bottomSummaryEl.textContent=`${state.username||"Player"} · Lv ${level} · Streak ${state.currentStreak}`; else bottomSummaryEl.textContent=state.profileCreated ? `${state.username} · Lv ${level} · ${status}` : "Berry Boom Match";}
+function updateMenuButtonVisual(){
+  const img=document.getElementById('menuToggleImg');
+  if(!img) return;
+  img.src = menuSheet.classList.contains('open') ? 'images/berrymenubutton2.png' : 'images/berrymenubutton1.png';
+}
+
+function renderAvatarChoices(){avatarGrid.innerHTML=""; avatars.forEach(avatar=>{const btn=document.createElement("button"); btn.type="button"; btn.className="avatar-choice"+(avatar===selectedAvatar?" selected":""); btn.textContent=avatar; btn.addEventListener("click",()=>{selectedAvatar=avatar; renderAvatarChoices()}); avatarGrid.appendChild(btn);});}
+function renderAvatarModalChoices(){avatarModalGrid.innerHTML=""; avatars.forEach(avatar=>{const btn=document.createElement("button"); btn.type="button"; btn.className="avatar-choice"+(avatar===state.avatar?" selected":""); btn.textContent=avatar; btn.addEventListener("click",()=>{ if(state.avatar!==avatar) state.avatarChanges++; state.avatar=avatar; saveState(); renderDashboard(); renderGameHud(); avatarModal.classList.remove("open"); }); avatarModalGrid.appendChild(btn);});}
+function formatTopHudTime(seconds){
+  const total=Math.max(0,Math.floor(seconds||0));
+  const days=Math.floor(total/86400);
+  const hours=Math.floor((total%86400)/3600);
+  const mins=Math.floor((total%3600)/60);
+  if(days>0) return `${days}d ${hours}h`;
+  if(total>=3600) return `${Math.floor(total/3600)}h ${mins}m`;
+  return `${mins}m ${String(total%60).padStart(2,'0')}s`;
+}
+
+function renderDashboard(){const xpInfo=getXpProgress(state.totalXp), level=xpInfo.level; dashAvatar.textContent=state.avatar; bottomAvatar.textContent=state.avatar; dashName.textContent=state.username || "Player"; dashStatus.textContent=`Level ${level} · ${getStatusTitle(level)}`; statScore.textContent=formatCompactNumber(state.totalScore); statLevel.textContent=formatCompactNumber(level); statMoves.textContent=formatCompactNumber(state.totalMoves); statMatches.textContent=formatCompactNumber(state.totalMatches); statTimePlayed.textContent=formatPlayTime(state.sessionSeconds); statBestStreak.textContent=formatCompactNumber(state.bestStreak||0); statBoomCollected.textContent=formatCompactNumber(state.berryBoomCollected||0); statBoomUsed.textContent=formatCompactNumber(state.berryBoomUsed||0); statBoomReady.textContent=formatCompactNumber(sumBerryBooms(state.berryBooms)); renderBadges(); renderSettingsAccount(); updateBottomSummary("dashboard");}
+function renderSettingsAccount(){const level=getLevelFromXp(state.totalXp); if(settingsAccountName) settingsAccountName.textContent=state.username||"Player"; if(settingsAccountAvatar) settingsAccountAvatar.textContent=state.avatar||"🍓"; if(settingsAccountLevel) settingsAccountLevel.textContent=String(level);} 
+function showSettingsTab(tabName){state.settingsTab=tabName; settingsTabs.forEach(btn=>btn.classList.toggle("active", btn.dataset.settingsTab===tabName)); settingsPanels.forEach(panel=>panel.classList.toggle("active", panel.id===`settingsTab_${tabName}`)); saveState();}
+const musicTracks=["backgroundtrack1.mp3","backgroundtrack2.mp3"];
+function loadCurrentTrack(){
+  const idx=(state.musicTrackIndex||0)%musicTracks.length;
+  const nextSrc=musicTracks[idx];
+  if(!bgMusic.src || !bgMusic.src.endsWith(nextSrc)){
+    bgMusic.src = nextSrc;
+    bgMusic.load();
+  }
+}
+function tryStartMusic(){
+  if(!state.musicEnabled) return;
+  loadCurrentTrack();
+  bgMusic.volume=Math.max(0,Math.min(1,Number(state.musicVolume||0.2)));
+  bgMusic.play().catch(()=>{});
+}
+function syncAudioUi(){
+  if(musicVolumeSlider) musicVolumeSlider.value=String(state.musicVolume ?? 0.2);
+  if(sfxVolumeSlider) sfxVolumeSlider.value=String(state.sfxVolume ?? 0.75);
+  if(musicToggleBtn) musicToggleBtn.textContent=state.musicEnabled?"Music On":"Music Off";
+  if(sfxToggleBtn) sfxToggleBtn.textContent=state.sfxEnabled?"SFX On":"SFX Off";
+  loadCurrentTrack();
+  bgMusic.volume=Math.max(0,Math.min(1,Number(state.musicVolume||0.2)));
+  if(state.musicEnabled){
+    bgMusic.play().catch(()=>{});
+  }else{
+    bgMusic.pause();
+  }
+}
+function updateSettingsView(){renderSettingsAccount(); syncAudioUi(); showSettingsTab(state.settingsTab||"tutorial");}
+function nudgeAudioStart(){tryStartMusic();}
+function renderBadges(){
+  badgeGrid.innerHTML="";
+  const unlockedCount=getUnlockedBadgeCount(state);
+  const ordered=[...badgeDefs].sort((a,b)=>Number(b.check(state))-Number(a.check(state)));
+  ordered.forEach(def=>{
+    const unlocked=def.check(state);
+    const card=document.createElement("div");
+    card.className="badge"+(unlocked?"":" locked");
+    card.innerHTML=`<div class="badge-icon">${def.icon}</div><div><div class="badge-name">${def.name}</div><div class="badge-note">${unlocked?"Unlocked":"Locked"}</div></div>`;
+    card.addEventListener("click",()=>openActionPopup({
+      label:"BADGE",
+      title:def.name,
+      html:`<strong>${def.note}</strong>${unlocked?'<br><br>✅ You already earned this badge.':'<br><br>Keep playing to unlock it.'}`,
+      actions:[{text:"Close",className:"btn"}]
+    }));
+    badgeGrid.appendChild(card);
+  });
+  const summary=document.createElement("div");
+  summary.className="badge";
+  summary.style.gridColumn="1 / -1";
+  summary.innerHTML=`<div class="badge-icon">🏆</div><div><div class="badge-name">${unlockedCount} / ${badgeDefs.length} badges unlocked</div><div class="badge-note">All badges are shown below. Locked badges stay grey until earned.</div></div>`;
+  badgeGrid.appendChild(summary);
+}
+function renderGameHud(){const xpInfo=getXpProgress(state.totalXp), level=xpInfo.level; gameLevelEl.textContent=`Level: ${formatCompactNumber(level)}`; gameXpEl.textContent=`XP: ${formatCompactNumber(xpInfo.current)}/${formatCompactNumber(xpInfo.needed)}`; gameStatusEl.textContent=getStatusTitle(level); gameTimeEl.textContent=`Time: ${formatTopHudTime(state.sessionSeconds||0)}`; gameStreakEl.textContent=`Streak: ${formatCompactNumber(state.currentStreak||0)}`; updateBottomSummary("game"); updateShakeNotice();}
+function getActiveGoal(){return goals[(state.activeGoalIndex||0) % goals.length] || null;}
+function updateGoalDisplay(){
+  if(!goalTextEl || !goalSubEl) return;
+  const goal=getActiveGoal();
+  const progress=Math.min(goal.progress(state), goal.target);
+  goalTextEl.textContent=goal.text;
+  goalSubEl.textContent=`${progress}/${goal.target} · +${goal.reward} XP`;
+}
+function checkGoalCompletion(){
+  const goal=getActiveGoal();
+  if(!goal){ updateGoalDisplay(); return; }
+  const progress=goal.progress(state);
+  if(progress >= goal.target){
+    state.totalXp += goal.reward;
+    state.goalsCompleted = (state.goalsCompleted||0)+1;
+    state.activeGoalIndex = (state.activeGoalIndex||0)+1;
+    state.totalScore += Math.round(goal.reward*0.5);
+    gameMessageEl.textContent=`Goal complete! +${goal.reward} XP`;
+    checkLevelUpQueue();
+    saveState();
+    renderDashboard();
+    renderGameHud();
+  }
+  updateGoalDisplay();
+}
+
+function renderBerryBoomBar(){boomBarEl.querySelectorAll("[data-boom-type]").forEach(btn=>{const type=btn.dataset.boomType; const count=Number((state.berryBooms||{})[type]||0); const berryId=berryMap[type]; btn.classList.toggle("off", count<=0); btn.classList.toggle("on", count>0); btn.dataset.active=count>0?"1":"0"; const badge=btn.querySelector(".boom-chip-badge"); if(badge) badge.textContent=String(count); const berryImg=btn.querySelector(".boom-chip-img"); if(berryImg) berryImg.src=`images/berry${berryId}a.png`; const bgImg=btn.querySelector(".boom-chip-bg"); if(bgImg && count<=0) bgImg.src='images/boomcont001a.png';});}
+function updateShakeNotice(){if(!game) return; shakeNoticeEl.innerHTML=possibleMoveExists(game.board,game.width) ? "" : '<span class="shake-alert">No moves left. Tap "Watch Ad · Shake Up" or "Shake Up Board".</span>';}
+function startGameTimer(){if(gameTimerInterval) return; gameTimerInterval=setInterval(()=>{state.sessionSeconds++; saveState(); if(gameTimeEl) gameTimeEl.textContent=formatClockTime(state.sessionSeconds); if(scenes.dashboard.classList.contains("active")) renderDashboard();},1000);}
+function queueLevelUp(level){levelupQueue.push(level); maybeShowQueuedLevelUp();}
+function maybeShowQueuedLevelUp(){if(!levelupQueue.length) return; if(game && game.busy) return; if(levelupSlider.classList.contains("open")) return; const level=levelupQueue.shift(); levelupBig.textContent=`LEVEL ${level}`; levelupSub.textContent=getStatusTitle(level); levelupSlider.classList.add("open"); clearTimeout(levelupTimer); levelupTimer=setTimeout(()=>closeLevelupSlider(),1800);}
+function closeLevelupSlider(){levelupSlider.classList.remove("open"); clearTimeout(levelupTimer); levelupTimer=setTimeout(()=>maybeShowQueuedLevelUp(),200);}
+function checkLevelUpQueue(){const currentLevel=getLevelFromXp(state.totalXp); if(currentLevel > (state.lastLevelShown||1)){for(let lv=(state.lastLevelShown||1)+1; lv<=currentLevel; lv++) queueLevelUp(lv); state.lastLevelShown=currentLevel; saveState();}}
+
+
+function openStatusModal(){
+  const level=getLevelFromXp(state.totalXp);
+  statusList.innerHTML="";
+  statusLevels.forEach(([lv,name])=>{
+    const row=document.createElement("div");
+    row.className="status-item"+(name===getStatusTitle(level)?" current":"");
+    row.innerHTML=`<span>Level ${lv}</span><span>${name}</span>`;
+    statusList.appendChild(row);
+  });
+  statusModal.classList.add("open");
+}
+function openMusicSettings(){
+  tryStartMusic();
+  showScene("settings");
+  document.querySelectorAll(".settings-tab").forEach(btn=>btn.classList.toggle("active", btn.dataset.settingsTab==="music"));
+  document.querySelectorAll(".settings-panel").forEach(panel=>panel.classList.toggle("active", panel.id==="settingsTab_music"));
+}
+
+
+function handleFailedMove(){
+  if((state.streakSavers||0) > 0 && (state.currentStreak||0) > 0){
+    openActionPopup({
+      label:"STREAK SAVER",
+      title:"Save your streak?",
+      html:`Keep your streak of <strong>${state.currentStreak}</strong> alive by using 1 Streak Saver.`,
+      actions:[
+        {
+          text:"Use Saver",
+          className:"btn",
+          onClick:()=>{
+            state.streakSavers=(state.streakSavers||0)-1;
+            saveState();
+            renderDashboard();
+            renderGameHud();
+            gameMessageEl.textContent="Streak saved!";
+          }
+        },
+        {
+          text:"Lose Streak",
+          className:"btn secondary",
+          onClick:()=>{
+            state.currentStreak=0;
+            saveState();
+            renderGameHud();
+            gameMessageEl.textContent="Streak lost.";
+          }
+        }
+      ]
+    });
+  }else{
+    state.currentStreak=0;
+    saveState();
+    renderGameHud();
+    gameMessageEl.textContent="No match there. Try another move.";
+  }
+}
+
+
+let popupAnimTimer=null;
+function stopPopupAnimations(){
+  if(popupAnimTimer){clearInterval(popupAnimTimer); popupAnimTimer=null;}
+}
+function startPopupAnimations(){
+  stopPopupAnimations();
+  const rewardImg=actionModalBody.querySelector('.popup-reward-box-img');
+  const boomBg=actionModalBody.querySelector('.popup-boom-anim-bg');
+  if(!rewardImg && !boomBg) return;
+  const rewardFrames=['images/rewardboombox1.png','images/rewardboombox1b.png','images/rewardboombox1c.png','images/rewardboombox1b.png'];
+  const boomFrames=['images/boomcont001a.png','images/boomcont001b.png','images/boomcont001c.png','images/boomcont001d.png'];
+  let r=0,b=0;
+  popupAnimTimer=setInterval(()=>{
+    if(rewardImg){
+      rewardImg.src=rewardFrames[r];
+      r=(r+1)%rewardFrames.length;
+    }
+    if(boomBg){
+      boomBg.src=boomFrames[b];
+      b=(b+1)%boomFrames.length;
+    }
+  },180);
+}
+
+function openActionPopup({label="BERRY BOOM",title="",html="",actions=[]}){actionModalLabel.textContent=label; actionModalTitle.textContent=title; actionModalBody.innerHTML=html; actionModalActions.innerHTML=""; actions.forEach(action=>{const btn=document.createElement("button"); btn.type="button"; btn.className=action.className || "btn"; btn.style.flex="1"; btn.textContent=action.text; btn.addEventListener("click",()=>{if(action.close!==false) closeActionPopup(); if(typeof action.onClick==="function") action.onClick();}); actionModalActions.appendChild(btn);}); actionModal.classList.add("open"); startPopupAnimations();}
+function closeActionPopup(){stopPopupAnimations(); actionModal.classList.remove("open");}
+actionModal.addEventListener("click",e=>{ if(e.target===actionModal) closeActionPopup(); });
+
+function initPractice(){
+  practice={step:0,width:4,squares:[],first:null,busy:false,board:[...tutorialSteps[0].board]};
+  renderTutorialBoard();
+  updatePracticeText();
+}
+function updatePracticeText(){
+  practiceProgressEl.textContent=tutorialSteps[practice.step].label;
+}
+function renderTutorialBoard(){
+  const stepData=tutorialSteps[practice.step];
+  renderBoard(practiceBoardEl,practice.board,practice.width,practice.squares,onPracticeClick);
+  practice.squares.forEach((sq,idx)=>{
+    sq.classList.remove("selected","matched","hint","tutorial-live","tutorial-dead","match-3","match-4","match-5","match-lt","match-cross");
+    sq.innerHTML="";
+    const berryId = berryMap[practice.board[idx]];
+    if(berryId){
+      const img=document.createElement("img");
+      img.className="tutorial-tile-img";
+      img.src=`images/berry${berryId}a.png`;
+      img.alt="";
+      img.draggable=false;
+      sq.appendChild(img);
+    }else{
+      sq.textContent=practice.board[idx];
+    }
+    if(stepData.live.includes(idx)){
+      sq.classList.add("tutorial-live","hint");
+    }else{
+      sq.classList.add("tutorial-dead");
+    }
+  });
+}
+function setTutorialTileImage(index, fruit){
+  const sq = practice.squares[index];
+  if(!sq) return;
+  sq.innerHTML = "";
+  const berryId = berryMap[fruit];
+  const img=document.createElement("img");
+  img.className="tutorial-tile-img";
+  img.src=`images/berry${berryId}a.png`;
+  img.alt="";
+  img.draggable=false;
+  sq.appendChild(img);
+}
+function onPracticeClick(e){
+  if(practice.busy) return;
+  const id=Number(e.currentTarget.dataset.id);
+  const stepData=tutorialSteps[practice.step];
+  if(!stepData.live.includes(id)) return;
+
+  if(practice.first===null){
+    practice.first=id;
+    practice.squares[id].classList.add("selected");
+    return;
+  }
+
+  if(id===practice.first){
+    practice.squares[id].classList.remove("selected");
+    practice.first=null;
+    return;
+  }
+
+  const pair=[practice.first,id].sort((a,b)=>a-b);
+  const needed=[...stepData.live].sort((a,b)=>a-b);
+  if(pair[0]!==needed[0] || pair[1]!==needed[1]){
+    practice.squares[practice.first].classList.remove("selected");
+    practice.first=null;
+    return;
+  }
+
+  const first = practice.first;
+  const second = id;
+  practice.busy=true;
+  practice.squares[first].classList.remove("selected");
+  practice.first=null;
+
+  const firstFruit = practice.board[first];
+  const secondFruit = practice.board[second];
+  setTutorialTileImage(first, secondFruit);
+  setTutorialTileImage(second, firstFruit);
+
+  setTimeout(()=>{
+    stepData.successIndices.forEach(index=>{
+      practice.squares[index]?.classList.add("matched","match-4");
+    });
+
+    const center=getGroupCenter(stepData.successIndices,practice.width,practiceBoardEl);
+    spawnFloat(practiceFloatsEl,center.x,center.y-10,"MATCH!","combo-main");
+    spawnFloat(practiceFloatsEl,center.x,center.y+12,"+120");
+    spawnFloat(practiceFloatsEl,center.x,center.y+34,"+45 XP");
+
+    setTimeout(()=>{
+      stepData.successIndices.forEach(index=>{
+        practice.squares[index]?.classList.remove("matched","match-4");
+      });
+      practice.busy=false;
+
+      if(practice.step===0){
+        tutorialNextModal.classList.add("open");
+        return;
+      }
+
+      state.practiced=true;
+      saveState();
+      successModal.classList.add("open");
+      setTimeout(()=>{
+        successModal.classList.remove("open");
+        showScene("profile");
+      },2000);
+    },520);
+  },180);
+}
+
+function initGameBoard(){game={width:6,board:new Array(36).fill(blank),squares:[],first:null,busy:false}; for(let i=0;i<game.board.length;i++) game.board[i]=randomTile(); sanitizeBoard(game.board,game.width); renderBoard(gameBoardEl,game.board,game.width,game.squares,onGameTileClick); renderGameHud(); renderBerryBoomBar(); updateGoalDisplay();}
+function onGameTileClick(e){
+  if(game.busy) return;
+  const id=Number(e.currentTarget.dataset.id);
+  if(game.first===null){game.first=id; game.squares[id].classList.add("selected"); gameMessageEl.textContent="Tap a neighboring tile to swap."; return;}
+  if(id===game.first){game.squares[id].classList.remove("selected"); game.first=null; gameMessageEl.textContent="Selection cleared."; return;}
+  if(!isNeighbor(game.first,id,game.width)){game.squares[game.first].classList.remove("selected"); game.first=id; game.squares[id].classList.add("selected"); gameMessageEl.textContent="That tile was not a neighbor."; return;}
+  const firstIndex=game.first; game.squares[firstIndex].classList.remove("selected");
+  swapValues(game.board,firstIndex,id); updateBoardFace(game.board,game.squares);
+  const groups=findMatchGroups(game.board,game.width);
+  if(groups.length){
+    state.totalMoves++; state.currentStreak=(state.currentStreak||0)+1; state.bestStreak=Math.max(state.bestStreak||0,state.currentStreak||0); saveState(); game.first=null;
+    resolveGameGroups(groups,()=>afterSuccessfulMatchMove());
+  }else{
+    swapValues(game.board,firstIndex,id); updateBoardFace(game.board,game.squares); game.first=null; handleFailedMove();
+  }
+}
+function resolveGameGroups(initialGroups,onDone){
+  game.busy=true; let chain=1;
+  const step=(groups)=>{
+    if(!groups.length){game.busy=false; renderGameHud(); gameMessageEl.textContent=chain>2?"Chain finished. Keep going.":"Nice. Make another match."; updateShakeNotice(); maybeShowQueuedLevelUp(); if(typeof onDone==="function") onDone(); return;}
+    showGroupsAsMatched(groups,game.squares,game.width); applyGroupRewards(groups,chain);
+    setTimeout(()=>{clearGroups(groups,game.board); collapseBoard(game.board,game.width); refillBoard(game.board); updateBoardFace(game.board,game.squares); const nextGroups=findMatchGroups(game.board,game.width); if(nextGroups.length){chain++; step(nextGroups); return;} if(!possibleMoveExists(game.board,game.width)){shuffleBoard(game.board); sanitizeBoard(game.board,game.width); updateBoardFace(game.board,game.squares); gameMessageEl.textContent="Board shuffled for fresh moves.";} step([]);},320);
+  };
+  step(initialGroups);
+}
+function applyGroupRewards(groups,chain){
+  groups.forEach(group=>{
+    const meta=classifyGroup(group,game.width); let points=group.length*10, xp=group.length*5;
+    if(meta.type==="4 Match"){points+=20; xp+=10; state.fourMatches++;}
+    if(meta.type==="5+ Match"){points+=40; xp+=18; state.megaMatches++;}
+    if(meta.type==="L / T Shape"){points+=50; xp+=25; state.ltMatches++;}
+    if(meta.type==="Cross Combo"){points+=70; xp+=35; state.crossMatches++;}
+    if(chain>1){points+=chain*10; xp+=chain*5; state.totalCombos++;}
+    state.totalScore+=points; state.totalXp+=xp; state.totalMatches++; state.tilesCleared=(state.tilesCleared||0)+group.length;
+    const center=getGroupCenter(group,game.width,gameBoardEl), combo=getComboText(meta.type,chain);
+    spawnFloat(gameFloatsEl,center.x,center.y-10,combo.main,"combo-main");
+    if(combo.bonus) spawnFloat(gameFloatsEl,center.x,center.y+10,combo.bonus);
+    spawnFloat(gameFloatsEl,center.x,center.y+28,`+${points} · +${xp}XP`);
+  });
+  saveState(); checkLevelUpQueue(); checkGoalCompletion(); renderGameHud();
+}
+function afterSuccessfulMatchMove(){
+  renderGameHud();
+  if(!state.firstRealMatchDone){
+    state.firstRealMatchDone=true;
+    const boomType=randomBoomTile();
+    grantBerryBoom(boomType,1);
+    saveState(); renderBerryBoomBar();
+    openActionPopup({label:"FIRST BERRY BOOM",title:"WHOA! You've got your first Berry Boom!",html:`Use it to see how it works.<br><br><strong>You got a ${berryImageHtml(boomType)} Berry Boom.</strong>`,actions:[{text:"GO BOOM!",className:"btn",onClick:()=>confirmBerryBoomUse(boomType)}]});
+    return;
+  }
+  const chance=Math.min(0.08 + ((state.currentStreak||0) * 0.005), 0.12);
+  if(Math.random() < chance) triggerMysteryBerryReward("RANDOM DROP");
+}
+
+function boomPreviewHtml(boomType){
+  const berryId=berryMap[boomType];
+  return `<div class="popup-boom-preview-wrap"><div class="popup-boom-preview"><img src="images/boomcont001a.png" class="boom-chip-bg popup-boom-anim-bg" alt="" /><img src="images/berry${berryId}a.png" class="boom-chip-img" alt="" /></div></div>`;
+}
+
+function triggerMysteryBerryReward(label="MYSTERY BERRY BOX"){const boomType=(label==="RANDOM DROP"?randomBoomTile():randomTile()); openMysteryBerryPopup(boomType,label);}
+function openMysteryBerryPopup(boomType,label="MYSTERY BERRY BOX"){
+  openActionPopup({
+    label,
+    title:"Mystery Berry Box",
+    html:`<div class="popup-reward-box-wrap"><img src="images/rewardboombox1.png" class="popup-reward-box-img" alt="" /></div><strong>CLICK TO OPEN</strong>`,
+    actions:[{text:"Open",className:"btn",onClick:()=>openMysteryBerryRewardResult(boomType,label)}]
+  });
+}
+function openMysteryBerryRewardResult(boomType,label="MYSTERY BERRY BOX"){
+  openActionPopup({
+    label,
+    title:"CONGRATULATIONS!",
+    html:`You've got a Berry Boom!${boomPreviewHtml(boomType)}<strong>Watch Ad to Keep</strong> or discard it.`,
+    actions:[
+      {text:"Watch Ad to Keep",className:"btn",onClick:()=>{grantBerryBoom(boomType,1); gameMessageEl.innerHTML=`${berryImageHtml(boomType)} Berry Boom added.`;}},
+      {text:"Discard",className:"btn secondary",onClick:()=>confirmDiscardBerryReward(boomType,label)}
+    ]
+  });
+}
+function confirmDiscardBerryReward(boomType,label){
+  openActionPopup({label,title:"Are you sure?",html:`You can still keep your <strong>${berryImageHtml(boomType)} Berry Boom</strong> before it disappears.`,actions:[{text:"Watch Ad to Keep",className:"btn",onClick:()=>{grantBerryBoom(boomType,1); gameMessageEl.innerHTML=`${berryImageHtml(boomType)} Berry Boom added.`;}},{text:"Yes, Discard",className:"btn secondary",onClick:()=>{gameMessageEl.textContent="Berry Boom discarded.";}}]});
+}
+function grantBerryBoom(type,amount=1){if(!state.berryBooms) state.berryBooms=emptyBerryBooms(); state.berryBooms[type]=(state.berryBooms[type]||0)+amount; state.berryBoomCollected=(state.berryBoomCollected||0)+amount; saveState(); renderBerryBoomBar(); checkGoalCompletion(); if(scenes.dashboard.classList.contains("active")) renderDashboard();}
+function confirmBerryBoomUse(type){
+  const count=Number((state.berryBooms||{})[type]||0);
+  if(count<=0){gameMessageEl.innerHTML=`No ${berryImageHtml(type)} Berry Booms ready.`; return;}
+  openActionPopup({label:"BERRY BOOM",title:`Use Berry Boom?`,html:`Use ${berryImageHtml(type)} <strong>Berry Boom</strong>?<br><br>This will explode all ${berryImageHtml(type)} tiles on the board.`,actions:[{text:"Use Now",className:"btn",onClick:()=>useBerryBoom(type)},{text:"Cancel",className:"btn secondary"}]});
+}
+function useBerryBoom(type){
+  if(!game || game.busy) return;
+  const indexes=[]; for(let i=0;i<game.board.length;i++) if(game.board[i]===type) indexes.push(i);
+  if(!indexes.length){gameMessageEl.innerHTML=`No ${berryImageHtml(type)} tiles on the board right now.`; return;}
+  if((state.berryBooms[type]||0)<=0) return;
+  state.berryBooms[type]--; state.berryBoomUsed=(state.berryBoomUsed||0)+1; saveState(); checkGoalCompletion(); renderBerryBoomBar(); renderDashboard(); runBerryBoomSequence(type,indexes);
+}
+function runBerryBoomSequence(type,indexes){
+  game.busy=true; game.first=null; gameMessageEl.innerHTML=`${berryImageHtml(type)} Berry Boom armed.`; updateBoardFace(game.board,game.squares); game.squares.forEach(sq=>sq.classList.add("dimmed"));
+  indexes.forEach(index=>{const sq=game.squares[index]; sq.classList.remove("dimmed"); sq.classList.add("boom-mark"); sq.innerHTML='<img src="images/bomb1.png" class="tile-img" alt="" />';});
+  ["3","2","1"].forEach((n,idx)=>setTimeout(()=>{indexes.forEach(index=>{const sq=game.squares[index]; if(sq) sq.textContent=n;}); const center=getGroupCenter(indexes,game.width,gameBoardEl); spawnFloat(gameFloatsEl,center.x,center.y,n,"boom-float");},320*idx));
+  setTimeout(()=>{
+    let totalPoints=0,totalXp=0;
+    const frames=["images/explosion1a.jpg","images/explosion1b.jpg","images/explosion1c.jpg","images/explosion1d.jpg","images/explosion1a.jpg"];
+    frames.forEach((frame,frameIdx)=>{
+      setTimeout(()=>{
+        indexes.forEach(index=>{
+          const sq=game.squares[index];
+          if(sq) sq.innerHTML=`<img src="${frame}" class="explosion-frame" alt="" />`;
+        });
+      },frameIdx*90);
+    });
+    setTimeout(()=>{
+      indexes.forEach(index=>{const tile=game.squares[index]; if(tile) tile.classList.add("matched"); const tileCenter=getTileCenter(index,game.width,gameBoardEl); spawnFloat(gameFloatsEl,tileCenter.x,tileCenter.y,`+15`,"boom-float"); totalPoints+=15; totalXp+=8; game.board[index]=blank;});
+      state.totalScore+=totalPoints; state.totalXp+=totalXp; state.totalMatches+=indexes.length; state.tilesCleared=(state.tilesCleared||0)+indexes.length; saveState(); checkLevelUpQueue();
+      setTimeout(()=>{collapseBoard(game.board,game.width); refillBoard(game.board); sanitizeBoard(game.board,game.width); updateBoardFace(game.board,game.squares); const center=getGroupCenter(indexes,game.width,gameBoardEl); spawnFloat(gameFloatsEl,center.x,center.y-8,`${type} BOOM!`,"combo-main"); spawnFloat(gameFloatsEl,center.x,center.y+18,`+${totalPoints} · +${totalXp}XP`); game.squares.forEach(sq=>sq.classList.remove("dimmed","boom-mark","matched")); game.busy=false; renderGameHud(); renderBerryBoomBar(); updateShakeNotice(); gameMessageEl.innerHTML=`${berryImageHtml(type)} Berry Boom exploded ${indexes.length} tiles.`; maybeShowQueuedLevelUp();},260);
+    },220);
+  },1450);
+}
+function shakeUpBoard(fromQuick=false){if(!game || game.busy) return; shuffleBoard(game.board); sanitizeBoard(game.board,game.width); updateBoardFace(game.board,game.squares); state.totalShuffles++; saveState(); checkGoalCompletion(); renderGameHud(); gameMessageEl.textContent=fromQuick ? "Board shaken up from ad reward." : "Board shaken up."; updateShakeNotice();}
+
+function renderBoard(root,board,width,squareStore,clickHandler){
+  root.innerHTML="";
+  squareStore.length=0;
+  const useImages = (root===gameBoardEl || root===practiceBoardEl);
+  const eventName = root===practiceBoardEl ? "pointerup" : "click";
+  for(let i=0;i<board.length;i++){
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="tile";
+    btn.dataset.id=i;
+    setTileVisual(btn,board[i],useImages);
+    btn.addEventListener(eventName,clickHandler);
+    root.appendChild(btn);
+    squareStore.push(btn);
+  }
+}
+function updateBoardFace(board,squares){
+  const useImages = (squares===game.squares || (practice && squares===practice.squares));
+  squares.forEach((sq,i)=>setTileVisual(sq,board[i],useImages));
+}
+function showGroupsAsMatched(groups,squares,width){const removals=[]; groups.forEach(group=>{const matchClass=getMatchCssClass(classifyGroup(group,width).type); group.forEach(index=>{if(squares[index]){squares[index].classList.add("matched",matchClass); removals.push([index,matchClass]);}});}); setTimeout(()=>{removals.forEach(([index,matchClass])=>squares[index]?.classList.remove("matched",matchClass));},440);}
+function clearGroups(groups,board){groups.forEach(group=>group.forEach(index=>board[index]=blank));}
+function collapseBoard(board,width){for(let col=0;col<width;col++){let writeRow=width-1; for(let row=width-1;row>=0;row--){const index=row*width+col; if(board[index]!==blank){board[writeRow*width+col]=board[index]; if(writeRow!==row) board[index]=blank; writeRow--;}} while(writeRow>=0){board[writeRow*width+col]=blank; writeRow--;}}}
+function refillBoard(board){for(let i=0;i<board.length;i++) if(board[i]===blank) board[i]=randomTile();}
+function sanitizeBoard(board,width){let guard=0; while((findMatchGroups(board,width).length || !possibleMoveExists(board,width)) && guard<200){const found=findMatchGroups(board,width); if(found.length){for(const group of found) group.forEach(index=>board[index]=randomTile());} else shuffleBoard(board); for(let i=0;i<board.length;i++) if(board[i]===blank) board[i]=randomTile(); guard++;}}
+function shuffleBoard(board){for(let i=board.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [board[i],board[j]]=[board[j],board[i]];}}
+let boomRewardBag=[];
+function randomBoomTile(){
+  if(!boomRewardBag.length){
+    boomRewardBag=[...tiles].sort(()=>Math.random()-.5);
+  }
+  return boomRewardBag.pop();
+}
+function randomTile(){return tiles[Math.floor(Math.random()*tiles.length)];}
+function isNeighbor(a,b,width){const ra=Math.floor(a/width), rb=Math.floor(b/width); if(Math.abs(a-b)===1) return ra===rb; if(Math.abs(a-b)===width) return true; return false;}
+function swapValues(arr,a,b){[arr[a],arr[b]]=[arr[b],arr[a]];}
+function findMatchGroups(board,width){
+  const matched=new Set();
+  for(let row=0;row<width;row++){let col=0; while(col<width){const idx=row*width+col, val=board[idx]; if(val===blank){col++; continue;} let run=1; while(col+run<width && board[row*width+col+run]===val) run++; if(run>=3) for(let k=0;k<run;k++) matched.add(row*width+col+k); col+=run;}}
+  for(let col=0;col<width;col++){let row=0; while(row<width){const idx=row*width+col, val=board[idx]; if(val===blank){row++; continue;} let run=1; while(row+run<width && board[(row+run)*width+col]===val) run++; if(run>=3) for(let k=0;k<run;k++) matched.add((row+k)*width+col); row+=run;}}
+  const groups=[], visited=new Set();
+  for(const index of matched){if(visited.has(index)) continue; const queue=[index], group=[]; visited.add(index); while(queue.length){const current=queue.shift(); group.push(current); [current-1,current+1,current-width,current+width].forEach(next=>{if(next<0||next>=board.length||visited.has(next)||!matched.has(next)) return; if(Math.abs(next-current)===1 && Math.floor(next/width)!==Math.floor(current/width)) return; visited.add(next); queue.push(next);});} groups.push(group.sort((a,b)=>a-b));}
+  return groups;
+}
+function classifyGroup(group,width){const rows=new Set(group.map(i=>Math.floor(i/width))), cols=new Set(group.map(i=>i%width)), degreeMap={}; group.forEach(i=>degreeMap[i]=0); group.forEach(i=>{[i-1,i+1,i-width,i+width].forEach(n=>{if(!group.includes(n)) return; if(Math.abs(n-i)===1 && Math.floor(n/width)!==Math.floor(i/width)) return; degreeMap[i]++;});}); const maxDegree=Math.max(...Object.values(degreeMap)); let type="3 Match"; if(maxDegree>=4) type="Cross Combo"; else if(maxDegree>=3 || (rows.size>1&&cols.size>1&&group.length>=5)) type="L / T Shape"; else if(group.length>=5) type="5+ Match"; else if(group.length===4) type="4 Match"; return {type};}
+function getMatchCssClass(type){if(type==="Cross Combo") return "match-cross"; if(type==="L / T Shape") return "match-lt"; if(type==="5+ Match") return "match-5"; if(type==="4 Match") return "match-4"; return "match-3";}
+function getComboText(type,chain){let main="", bonus=""; if(chain>=5) main="GOD MODE!"; else if(chain===4) main="WOW! QUADRO-COMBO! 4x!"; else if(chain===3) main="TRIPLE THREAT!"; else if(chain===2) main="COMBO x2!"; if(!main){if(type==="Cross Combo") main="CROSS BLAST!"; else if(type==="L / T Shape") main="SKILL COMBO!"; else if(type==="5+ Match") main="WHOA! MEGA-MATCH! 5++"; else if(type==="4 Match") main="POWER MATCH!"; else main="NICE!";} else {if(type==="Cross Combo") bonus="CROSS BLAST!"; else if(type==="L / T Shape") bonus="SKILL COMBO!"; else if(type==="5+ Match") bonus="MEGA MATCH!";} return {main,bonus};}
+function getGroupCenter(group,width,boardEl){const firstTile=boardEl.querySelector(`[data-id="${group[0]}"]`); if(!firstTile) return {x:50,y:50}; const boardRect=boardEl.getBoundingClientRect(); let totalX=0,totalY=0; group.forEach(index=>{const tile=boardEl.querySelector(`[data-id="${index}"]`); if(!tile) return; const rect=tile.getBoundingClientRect(); totalX+=(rect.left-boardRect.left)+rect.width/2; totalY+=(rect.top-boardRect.top)+rect.height/2;}); return {x:totalX/group.length,y:totalY/group.length};}
+function getTileCenter(index,width,boardEl){const tile=boardEl.querySelector(`[data-id="${index}"]`); if(!tile) return {x:50,y:50}; const boardRect=boardEl.getBoundingClientRect(); const rect=tile.getBoundingClientRect(); return {x:(rect.left-boardRect.left)+rect.width/2,y:(rect.top-boardRect.top)+rect.height/2};}
+function spawnFloat(layer,x,y,text,extra=""){const div=document.createElement("div"); div.className="float-text"+(extra?" "+extra:""); div.textContent=text; div.style.left=`${x}px`; div.style.top=`${y}px`; layer.appendChild(div); setTimeout(()=>div.remove(),980);}
+function scoreGroups(groups,width){let points=0,xp=0; groups.forEach(group=>{const type=classifyGroup(group,width).type; let p=group.length*10, x=group.length*5; if(type==="4 Match"){p+=20; x+=10} if(type==="5+ Match"){p+=40; x+=18} if(type==="L / T Shape"){p+=50; x+=25} if(type==="Cross Combo"){p+=70; x+=35} points+=p; xp+=x;}); return {points,xp};}
+function possibleMoveExists(board,width){const trySwap=(a,b)=>{swapValues(board,a,b); const ex=findMatchGroups(board,width).length>0; swapValues(board,a,b); return ex;}; for(let i=0;i<board.length;i++){const right=i+1, down=i+width; if(right<board.length && Math.floor(right/width)===Math.floor(i/width) && trySwap(i,right)) return true; if(down<board.length && trySwap(i,down)) return true;} return false;}
+
+document.getElementById("saveProfileBtn").addEventListener("click",()=>{const username=usernameInput.value.trim(); if(!username){usernameInput.focus(); return;} state.profileCreated=true; state.username=username; state.avatar=selectedAvatar; state.lastLevelShown=getLevelFromXp(state.totalXp); saveState(); renderDashboard(); showScene("dashboard");});
+document.getElementById("playNowBtn").addEventListener("click",()=>{nudgeAudioStart(); showScene("game");});
+document.getElementById("menuToggle").addEventListener("click",()=>{nudgeAudioStart(); menuSheet.classList.toggle("open"); updateMenuButtonVisual();});
+menuSheet.querySelectorAll("[data-go]").forEach(btn=>btn.addEventListener("click",()=>showScene(btn.dataset.go)));
+document.getElementById("helpBtn").addEventListener("click",()=>openActionPopup({
+  label:"HELP",
+  title:"Need Help?",
+  html:"<strong>Quick help</strong><br><br>• Swap neighboring berries to make matches.<br>• Use Berry Booms to clear one berry type.<br>• Shake Up refreshes the board.<br>• Tap your status to view status levels.<br>• Tap the audio button for music settings.",
+  actions:[{text:"Close",className:"btn"}]
+}));
+document.getElementById("quickShuffleBtn").addEventListener("click",()=>shakeUpBoard(true));
+document.getElementById("mysteryBoxBtn").addEventListener("click",()=>triggerMysteryBerryReward("MYSTERY BERRY BOX"));
+document.getElementById("streakSaverBtn").addEventListener("click",()=>openActionPopup({label:"STREAK SAVER",title:"Streak Saver",html:`You have <strong>${state.streakSavers||0}</strong> Streak Saver${(state.streakSavers||0)===1?"":"s"}. It auto-offers on a failed swap when you have a streak.`,actions:[{text:"Watch Ad for +1",className:"btn",onClick:()=>{state.streakSavers=(state.streakSavers||0)+1; saveState(); gameMessageEl.textContent="Streak Saver added!";}},{text:"Close",className:"btn secondary"}]}));
+document.getElementById("settingsDashboardBtn").addEventListener("click",()=>showScene("dashboard"));
+document.getElementById("settingsPlayBtn").addEventListener("click",()=>showScene("game"));
+document.getElementById("settingsDashboardBtnBottom").addEventListener("click",()=>showScene("dashboard"));
+document.getElementById("settingsPlayBtnBottom").addEventListener("click",()=>showScene("game"));
+document.getElementById("resetAllBtn").addEventListener("click",()=>{localStorage.removeItem(STORAGE_KEY); location.reload();});
+document.getElementById("dashAvatar").addEventListener("click",()=>{renderAvatarModalChoices(); avatarModal.classList.add("open");});
+document.getElementById("dashStatus").addEventListener("click",openStatusModal);
+document.getElementById("gameStatus").addEventListener("click",openStatusModal);
+document.getElementById("quickMusicBtn").addEventListener("click",openMusicSettings);
+document.getElementById("statusModalClose").addEventListener("click",()=>statusModal.classList.remove("open"));
+statusModal.addEventListener("click",e=>{ if(e.target===statusModal) statusModal.classList.remove("open"); });
+document.getElementById("avatarModalClose").addEventListener("click",()=>avatarModal.classList.remove("open"));
+avatarModal.addEventListener("click",e=>{if(e.target===avatarModal) avatarModal.classList.remove("open");});
+document.getElementById("nameEditOpenBtn").addEventListener("click",()=>{nameModalInput.value=state.username||""; nameModal.classList.add("open");});
+document.getElementById("nameModalCancel").addEventListener("click",()=>nameModal.classList.remove("open"));
+document.getElementById("nameModalSave").addEventListener("click",()=>{const username=nameModalInput.value.trim(); if(!username){nameModalInput.focus(); return;} if(username!==state.username) state.nameChanges++; state.username=username; saveState(); renderDashboard(); renderGameHud(); nameModal.classList.remove("open");});
+nameModal.addEventListener("click",e=>{if(e.target===nameModal) nameModal.classList.remove("open");});
+tutorialNextBtn.addEventListener("click",()=>{
+  tutorialNextModal.classList.remove("open");
+  practice.step=1;
+  practice.board=[...tutorialSteps[1].board];
+  renderTutorialBoard();
+  updatePracticeText();
+});
+document.getElementById("levelupSliderClose").addEventListener("click",()=>closeLevelupSlider());
+boomBarEl.querySelectorAll("[data-boom-type]").forEach(btn=>btn.addEventListener("click",()=>{const type=btn.dataset.boomType; if(game && !game.busy) confirmBerryBoomUse(type);}));
+
+settingsTabs.forEach(btn=>btn.addEventListener("click",()=>showSettingsTab(btn.dataset.settingsTab)));
+bgMusic.addEventListener("ended",()=>{state.musicTrackIndex=((state.musicTrackIndex||0)+1)%musicTracks.length; saveState(); loadCurrentTrack(); if(state.musicEnabled){bgMusic.play().catch(()=>{});}});
+document.body.addEventListener("pointerdown",()=>{tryStartMusic();},{once:true});
+musicToggleBtn.addEventListener("click",()=>{state.musicEnabled=!state.musicEnabled; saveState(); syncAudioUi();});
+musicVolumeSlider.addEventListener("input",()=>{state.musicVolume=Number(musicVolumeSlider.value); saveState(); syncAudioUi();});
+sfxToggleBtn.addEventListener("click",()=>{state.sfxEnabled=!state.sfxEnabled; saveState(); syncAudioUi();});
+sfxVolumeSlider.addEventListener("input",()=>{state.sfxVolume=Number(sfxVolumeSlider.value); saveState(); syncAudioUi();});
+function boot(){renderAvatarChoices(); renderBerryBoomBar(); updateSettingsView(); loadCurrentTrack(); if(!state.practiced){initPractice(); showScene("practice");} else if(!state.profileCreated){showScene("profile");} else {renderDashboard(); showScene("dashboard");} maybeShowQueuedLevelUp(); startBerryAnimationLoop(); syncAudioUi();}
+boot();
+</script>
+</body>
+</html>
